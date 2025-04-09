@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Cyan ID Card Generator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      height: 100%;
+      font-family: 'Segoe UI', sans-serif;
+      background: #0d0d0d;
+      overflow: hidden;
+    }
+
+    .page {
+      display: none;
+      width: 100vw;
+      height: 100vh;
+    }
+
+    #welcomePage {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: #0d0d0d;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 10;
+    }
+
+    .welcome {
+      text-align: center;
+      padding: 40px;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 20px;
+      border: 1px solid rgba(0, 255, 255, 0.4);
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.3);
+      animation: fadeIn 1s ease-out;
+    }
+
+    .welcome h1 {
+      font-size: 40px;
+      color: #00ffff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 10px #00ffff;
+    }
+
+    .welcome p {
+      font-size: 18px;
+      margin-bottom: 30px;
+      color: #ccc;
+    }
+
+    .welcome button {
+      padding: 14px 30px;
+      font-size: 18px;
+      background: transparent;
+      color: #00ffff;
+      border: 2px solid #00ffff;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.3s;
+      box-shadow: 0 0 10px #00ffff;
+    }
+
+    .welcome button:hover {
+      background: #00ffff;
+      color: black;
+      box-shadow: 0 0 25px #00ffff;
+    }
+
+    .card-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 40px;
+      justify-content: center;
+      align-items: center;
+      padding: 40px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .form-section {
+      flex: 1;
+      min-width: 300px;
+      max-width: 400px;
+    }
+
+    .form-section h2 {
+      margin-bottom: 20px;
+      color: #00ffff;
+      text-shadow: 0 0 5px #00ffff;
+    }
+
+    .form-section label {
+      display: block;
+      margin-top: 15px;
+      color: #ccc;
+    }
+
+    .form-section input {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background-color: #1e1e1e;
+      color: white;
+    }
+
+    .form-section button {
+      margin-top: 25px;
+      background: #00ffff;
+      color: black;
+      padding: 12px;
+      width: 100%;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 15px #00ffff;
+      transition: 0.3s;
+    }
+
+    .form-section button:hover {
+      background: #00e0e0;
+      box-shadow: 0 0 25px #00ffff;
+    }
+
+    canvas {
+      border: 2px solid #00ffff;
+      border-radius: 12px;
+      max-width: 400px;
+      box-shadow: 0 0 10px #00ffff;
+    }
+
+    .preview {
+      text-align: center;
+    }
+
+    @media (max-width: 768px) {
+      .card-container {
+        flex-direction: column;
+        align-items: center;
+        overflow-y: auto;
+      }
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Welcome Page -->
+  <div id="welcomePage" class="page" style="display: flex;">
+    <div class="welcome">
+      <h1>Welcome to ID Card Generator</h1>
+      <p>Create glowing cyan ID cards easily!</p>
+      <button onclick="showGenerator()">Start</button>
+    </div>
+  </div>
+
+  <!-- Generator Page -->
+  <div id="generatorPage" class="page">
+    <div class="card-container">
+      <div class="form-section">
+        <h2>Enter Details</h2>
+        <label for="name">Full Name</label>
+        <input type="text" id="name" placeholder="John Doe">
+
+        <label for="empid">Employee ID</label>
+        <input type="text" id="empid" placeholder="EMP12345">
+
+        <label for="role">Role</label>
+        <input type="text" id="role" placeholder="Software Engineer">
+
+        <label for="photo">Upload Photo</label>
+        <input type="file" id="photo" accept="image/*">
+
+        <label for="logo">Upload Logo</label>
+        <input type="file" id="logo" accept="image/*">
+
+        <button onclick="generateCard()">Generate & Download</button>
+      </div>
+
+      <div class="preview">
+        <h2>Live Preview</h2>
+        <canvas id="idCanvas" width="400" height="250"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const welcomePage = document.getElementById('welcomePage');
+    const generatorPage = document.getElementById('generatorPage');
+
+    function showGenerator() {
+      welcomePage.style.display = 'none';
+      generatorPage.style.display = 'block';
+    }
+
+    let photoImg = null;
+    let logoImg = null;
+
+    document.getElementById("photo").addEventListener("change", function (e) {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        photoImg = new Image();
+        photoImg.src = event.target.result;
+        photoImg.onload = drawCard;
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    });
+
+    document.getElementById("logo").addEventListener("change", function (e) {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        logoImg = new Image();
+        logoImg.src = event.target.result;
+        logoImg.onload = drawCard;
+      };
+      reader.readAsDataURL(e.target.files[0]);
+    });
+
+    function generateCard() {
+      drawCard();
+      const canvas = document.getElementById("idCanvas");
+      const link = document.createElement("a");
+      link.download = document.getElementById("name").value + "_IDCard.png";
+      link.href = canvas.toDataURL();
+      link.click();
+    }
+
+    function drawCard() {
+      const canvas = document.getElementById("idCanvas");
+      const ctx = canvas.getContext("2d");
+
+      const name = document.getElementById("name").value;
+      const id = document.getElementById("empid").value;
+      const role = document.getElementById("role").value;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = "#121212";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#00ffff";
+      ctx.fillRect(0, 0, canvas.width, 50);
+      ctx.fillStyle = "#000";
+      ctx.font = "bold 18px Arial";
+      ctx.fillText("PROFESSIONAL ID CARD", 100, 30);
+
+      if (logoImg) {
+        ctx.drawImage(logoImg, canvas.width - 60, 10, 40, 40);
+      }
+
+      if (photoImg) {
+        ctx.drawImage(photoImg, 20, 70, 80, 100);
+        ctx.strokeStyle = "#00ffff";
+        ctx.strokeRect(20, 70, 80, 100);
+      }
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "16px Arial";
+      ctx.fillText("Name: " + name, 120, 90);
+      ctx.fillText("Emp ID: " + id, 120, 120);
+      ctx.fillText("Role: " + role, 120, 150);
+
+      ctx.fillStyle = "#00ffff";
+      ctx.fillRect(0, canvas.height - 30, canvas.width, 30);
+      ctx.fillStyle = "#000";
+      ctx.font = "14px Arial";
+      ctx.fillText("Issued on: " + new Date().toLocaleDateString(), 20, canvas.height - 10);
+    }
+  </script>
+</body>
+</html>
